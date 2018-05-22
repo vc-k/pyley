@@ -1,5 +1,8 @@
 import json
 import requests
+from queue import Queue
+import asyncio
+import aiohttp
 
 class CayleyResponse(object):
     def __init__(self, raw_response, result):
@@ -12,6 +15,7 @@ class CayleyClient(object):
         self.url = "%s/api/%s/query/gizmo" % (url, version)
         self.write_url = "%s/api/%s/write" % (url, version)
         self.delete_url = "%s/api/%s/delete" % (url, version)
+        self._queue = Queue()
 
     def Send(self, query):
         if isinstance(query, str):
@@ -23,10 +27,10 @@ class CayleyClient(object):
         else:
             raise Exception("Invalid query parameter in Send")
 
-    def AddQuad(self, subject, predicate, object_, label=None):
-        return self.AddQuads([(subject, predicate, object_, label)])
+    async def AddQuad(self, subject, predicate, object_, label=None):
+        return await self.AddQuads([(subject, predicate, object_, label)])
 
-    def AddQuads(self, quads):
+    async def AddQuads(self, quads):
         quads = [
             {
                 "subject": q[0],
@@ -36,8 +40,12 @@ class CayleyClient(object):
             }
             for q in quads
         ]
-        r = requests.post(self.write_url, json=quads)
-        return CayleyResponse(r, r.json())
+        # r = requests.post(self.write_url, json=quads)
+        # return CayleyResponse(r, r.json())
+        async with aiohttp.ClientSession() as session:
+            async with session.post(self.write_url, json=quads) as resp:
+                print(await resp.text())
+        return None
 
     def DeleteQuad(self, subject, predicate, object_, label=None):
         return self.DeleteQuads([(subject, predicate, object_, label)])
@@ -158,11 +166,6 @@ class _Path(_GizmoQuery):
 
     def Has(self, predicate, object):
         self._put("Has('%s', '%s')", predicate, object)
-
-        return self
-
-    def HasR(self, predicate, object):
-        self._put("Has('%s', '%s')", object, predicate)
 
         return self
 
