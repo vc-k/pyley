@@ -15,7 +15,7 @@ class CayleyClient(object):
         self.url = "%s/api/%s/query/gizmo" % (url, version)
         self.write_url = "%s/api/%s/write" % (url, version)
         self.delete_url = "%s/api/%s/delete" % (url, version)
-        self._queue = Queue()
+        print('Cayley Client initialized')
 
     def Send(self, query):
         if isinstance(query, str):
